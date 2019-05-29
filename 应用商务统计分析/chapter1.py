@@ -4,7 +4,7 @@
 第一章 线性回归（上市公司净资产收益率预测分析）
 
 1. 数据采集
-确认采样信息，包括自变量和因变量、时间范围、数据来源（优矿数据平台）。
+确认采样信息，包括自变量和因变量、时间范围、数据来源。
 
 2. 数据清洗
 了解数据，对异常数据进行适当的清洗处理。
@@ -22,7 +22,6 @@
 评估模型在新数据集上的预测效果。
 
 '''
-
 
 
 import pandas as pd
@@ -47,7 +46,7 @@ str2 = '\n'*2 + '-'*80
 
 def get_data(beginDate, endDate):
     '''
-    一、数据采集（优矿数据平台）
+    一、数据采集
     输入：开始日，结束日
     输出：原始数据集
     '''
@@ -229,14 +228,17 @@ def desc_data(df, target, validcolsdict):
     print(str2 + 'Kde')
     fig = plt.figure(figsize = (15, 12), dpi = 300)
     col = 3
-    row = len(validcolslst) // col
-    for i in range(1, row+1):
+    row = np.floor(len(validcolslst) / col)+1
+    cumsum = 1
+    for i in range(1, int(row+1)):
         for j in range(1, col+1):
-            idx = (i - 1)*col + j - 1
-            tmpax = fig.add_subplot(row, col, idx+1)
-            colname = validcolslst[idx]
-            df.groupby('year')[colname].plot.kde(legend=True, ax = tmpax)
-            tmpax.set_title(colname, fontweight ='bold', fontsize=16)
+            if cumsum <= len(validcolslst):
+                idx = (i - 1)*col + j - 1
+                tmpax = fig.add_subplot(row, col, idx+1)
+                colname = validcolslst[idx]
+                df.groupby('year')[colname].plot.kde(legend=True, ax = tmpax)
+                tmpax.set_title(colname, fontweight ='bold', fontsize=16)
+                cumsum = cumsum + 1
     plt.tight_layout()
     plt.show() 
     plt.close()
@@ -391,15 +393,14 @@ def model_report(model):
 	3. 拟合优度：对模型的拟合优度进行量化的判断，从而或者自变量对因变量的解释力度，一般认为R^2越大，解释效果越好，但是当变量增多时，R^2只会不断增加而不会减少，这时候引入调整后的R^2（变量数的惩罚）；
 	4. 残差项标准差
     '''
-	print('AIC: %.2F  BIC: %.2f' % (model.aic, model.bic))
+    print('AIC: %.2F  BIC: %.2f' % (model.aic, model.bic))
     print(model.summary().tables[1])
     print('残差项标准差：%.3f  模型F检验P值：%.3f \n判决系数（R^2）:%.3f  调整的判决系数（R^2）:%.3f'
           % (np.std(model.resid), model.f_pvalue, model.rsquared, model.rsquared_adj))
     
     
-
 	
-
+	
 ################ 0. 设置参数 #################
 print(str1 + ' 0. 设置参数')
 
@@ -445,7 +446,7 @@ modeldata = clean_data(df[df.year.isin(np.array(args['split_data_args'].values()
 
 
 
-################# 4. 描述性分析 #################
+################# 3. 描述性分析 #################
 print(str1 + ' 3. 描述性分析')
 desc_data(modeldata
           , target
@@ -503,8 +504,5 @@ result = {'Base': mean_squared_error(testdata[target], testdata['ROE'])**0.5
            , 'AIC Model': mean_squared_error(testdata[target], aic_lm.predict(testdata[selected]))**0.5
            , 'BIC Model': mean_squared_error(testdata[target], bic_lm.predict(testdata[selected]))**0.5
           }
-print(pd.DataFrame(data=result.values(), index=result.keys(), columns=['平均预测误差']).sort_index(ascending=False))
-
-
-
+print(pd.DataFrame(data=result.values(), index=result.keys(), columns=['平均预测误差']).sort_index(ascending=False).T)
 
